@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circuit Spark — Logic Gate Puzzles</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne+Mono&family=Syne:wght@700;800&display=swap');
+
+:root {
+  --bg: #111218;
+  --surface: #181a24;
+  --panel: #1e2130;
+  --border: #2a2f45;
+  --wire-idle: #2a3050;
+  --wire-hot: #f5c842;
+  --wire-hot2: #ff8c42;
+  --bulb-off: #2a2f45;
+  --bulb-on: #f5c842;
+  --and-col: #4af0c8;
+  --or-col: #ff6b9d;
+  --xor-col: #7eb8ff;
+  --text: #c8cfe8;
+  --text-dim: #505878;
+  --green: #4af0c8;
+  --red: #ff4a6b;
+  --yellow: #f5c842;
+  --radius: 10px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne Mono', monospace;
+  min-height: 100vh;
+  user-select: none;
+  overflow: hidden;
+}
+
+#shell {
+  display: grid;
+  grid-template-rows: 56px 1fr;
+  height: 100vh;
+  width: 100vw;
+}
+
+#topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  z-index: 100;
+}
+
+.logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  color: var(--yellow);
+}
+.logo span { color: var(--text-dim); font-weight: 700; font-size: 0.8rem; margin-left: 8px; }
+
+.top-stats { display: flex; gap: 24px; align-items: center; }
+.stat { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.stat-label { font-size: 0.55rem; color: var(--text-dim); letter-spacing: 0.15em; text-transform: uppercase; }
+.stat-val { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.9rem; color: var(--text); }
+.stat-val.gold { color: var(--yellow); }
+
+.top-btns { display: flex; gap: 8px; }
+.tb {
+  background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+  font-family: 'Syne Mono', monospace; font-size: 0.68rem; padding: 5px 12px;
+  border-radius: 6px; cursor: pointer; transition: all .18s; letter-spacing: 0.08em;
+}
+.tb:hover { border-color: var(--yellow); color: var(--yellow); }
+
+#main {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  height: 100%;
+  overflow: hidden;
+}
+
+#left-panel {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.section-hd {
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  padding: 14px 14px 6px;
+}
+
+.palette-gate {
+  margin: 4px 10px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: grab;
+  transition: all .18s;
+  position: relative;
+  overflow: hidden;
+}
+.palette-gate:hover { transform: translateX(3px); }
+.palette-gate.and { border-left: 3px solid var(--and-col); }
+.palette-gate.or  { border-left: 3px solid var(--or-col); }
+.palette-gate.xor { border-left: 3px solid var(--xor-col); }
+.palette-gate.disabled { opacity: 0.35; cursor: not-allowed; }
+.palette-gate:not(.disabled):active { cursor: grabbing; opacity: 0.6; }
+
+.pg-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.85rem; margin-bottom: 2px; }
+.pg-name.and { color: var(--and-col); }
+.pg-name.or  { color: var(--or-col); }
+.pg-name.xor { color: var(--xor-col); }
+.pg-rule { font-size: 0.62rem; color: var(--text-dim); line-height: 1.4; }
+
+#info-box {
+  margin: 10px;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+#info-box .info-title {
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.75rem;
+  color: var(--yellow); margin-bottom: 6px;
+}
+
+#level-card {
+  margin: 10px;
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.level-num { font-size: 0.55rem; color: var(--text-dim); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 4px; }
+.level-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.88rem; color: var(--text); margin-bottom: 8px; }
+.level-goal { font-size: 0.63rem; color: var(--text-dim); line-height: 1.5; margin-bottom: 10px; }
+.inputs-display { display: flex; gap: 8px; }
+.input-pill { flex: 1; text-align: center; padding: 6px 4px; border-radius: 6px; font-size: 0.7rem; border: 1px solid var(--border); }
+.input-pill.hot { background: rgba(245,200,66,0.1); border-color: var(--yellow); color: var(--yellow); }
+.input-pill.cold { background: var(--surface); color: var(--text-dim); }
+.input-pill-label { font-size: 0.55rem; color: var(--text-dim); }
+
+#canvas-wrap {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(245,200,66,0.025) 0%, transparent 70%),
+    repeating-linear-gradient(0deg, transparent, transparent 29px, rgba(255,255,255,0.018) 30px),
+    repeating-linear-gradient(90deg, transparent, transparent 29px, rgba(255,255,255,0.018) 30px);
+}
+
+#game-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  touch-action: none;
+}
+
+/* Ghost gate that follows cursor OUTSIDE canvas */
+#gate-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  display: none;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  background: rgba(17,18,24,0.92);
+  backdrop-filter: blur(6px);
+}
+.overlay.hidden { display: none; }
+
+.ov-title {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  color: var(--yellow);
+  text-shadow: 0 0 30px rgba(245,200,66,0.4);
+  margin-bottom: 8px;
+}
+.ov-sub { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 28px; text-align: center; max-width: 360px; line-height: 1.6; }
+.ov-btn {
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.85rem;
+  letter-spacing: 0.1em; padding: 12px 32px; border-radius: 8px; cursor: pointer;
+  border: 2px solid var(--yellow); background: transparent; color: var(--yellow);
+  transition: all .2s; margin: 4px;
+}
+.ov-btn:hover { background: rgba(245,200,66,0.1); box-shadow: 0 0 20px rgba(245,200,66,0.2); transform: translateY(-2px); }
+.ov-btn.sec { border-color: var(--border); color: var(--text-dim); }
+.ov-btn.sec:hover { border-color: var(--text-dim); background: rgba(255,255,255,0.04); }
+
+@keyframes floatUp {
+  from { transform: translateY(0) scale(1); opacity: 1; }
+  to   { transform: translateY(-80px) scale(0.4); opacity: 0; }
+}
+.spark {
+  position: absolute; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--yellow); pointer-events: none;
+  animation: floatUp 0.8s ease-out forwards;
+}
+
+#tooltip {
+  position: absolute; padding: 8px 12px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 8px; font-size: 0.65rem;
+  color: var(--text); pointer-events: none; z-index: 200; max-width: 180px;
+  line-height: 1.5; display: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+#reset-btn {
+  position: absolute; bottom: 16px; right: 16px; background: var(--panel);
+  border: 1px solid var(--border); color: var(--text-dim);
+  font-family: 'Syne Mono', monospace; font-size: 0.7rem;
+  padding: 8px 16px; border-radius: 8px; cursor: pointer; z-index: 10;
+  transition: all .18s; letter-spacing: 0.08em;
+}
+#reset-btn:hover { border-color: var(--red); color: var(--red); }
+
+#hint-panel {
+  position: absolute; bottom: 16px; left: 16px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+  font-size: 0.65rem; color: var(--text-dim); max-width: 220px; line-height: 1.6;
+  z-index: 10;
+}
+#hint-panel .hint-title {
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.72rem;
+  color: var(--yellow); margin-bottom: 4px;
+}
+
+/* Wiring cursor indicator */
+#canvas-wrap.wiring-mode { cursor: crosshair; }
+</style>
+</head>
+<body>
+<div id="shell">
+
+  <div id="topbar">
+    <div class="logo">⚡ CIRCUIT SPARK <span>Logic Gate Puzzles</span></div>
+    <div class="top-stats">
+      <div class="stat"><span class="stat-label">Level</span><span class="stat-val gold" id="top-level">1/8</span></div>
+      <div class="stat"><span class="stat-label">Score</span><span class="stat-val gold" id="top-score">0</span></div>
+    </div>
+    <div class="top-btns">
+      <button class="tb" onclick="resetLevel()">↺ RESET</button>
+      <button class="tb" onclick="showMenu()">☰ MENU</button>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="left-panel">
+      <div class="section-hd">Gate Toolbox</div>
+
+      <div class="palette-gate and" id="pg-AND" data-type="AND">
+        <div class="pg-name and">AND</div>
+        <div class="pg-rule">Output = 1<br>only if A=1 AND B=1</div>
+      </div>
+
+      <div class="palette-gate or" id="pg-OR" data-type="OR">
+        <div class="pg-name or">OR</div>
+        <div class="pg-rule">Output = 1<br>if A=1 OR B=1</div>
+      </div>
+
+      <div class="palette-gate xor" id="pg-XOR" data-type="XOR">
+        <div class="pg-name xor">XOR</div>
+        <div class="pg-rule">Output = 1<br>if A ≠ B (different)</div>
+      </div>
+
+      <div class="section-hd" style="margin-top:8px;">Current Level</div>
+      <div id="level-card">
+        <div class="level-num" id="lc-num">LEVEL 1</div>
+        <div class="level-name" id="lc-name">—</div>
+        <div class="level-goal" id="lc-goal">—</div>
+        <div class="section-hd" style="padding:0 0 6px;">Inputs</div>
+        <div class="inputs-display" id="lc-inputs"></div>
+      </div>
+
+      <div id="info-box">
+        <div class="info-title">💡 How to Play</div>
+        Drag gates from toolbox onto board.<br><br>
+        Click a gate's <b>output port</b> → click another gate's <b>input port</b> to wire.<br><br>
+        <b>Double-click</b> a gate to delete it.<br><br>
+        Light up the <b>bulb</b> to advance!
+      </div>
+    </div>
+
+    <div id="canvas-wrap">
+      <canvas id="game-canvas"></canvas>
+      <div id="hint-panel">
+        <div class="hint-title" id="hint-title">⚡ Hint</div>
+        <div id="hint-text">Place a gate and connect the inputs to it, then connect the gate's output to the bulb.</div>
+      </div>
+      <button id="reset-btn" onclick="resetLevel()">↺ Clear Board</button>
+      <div id="tooltip"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Floating ghost for palette drag -->
+<canvas id="gate-ghost" width="110" height="70"></canvas>
+
+<!-- OVERLAYS -->
+<div class="overlay" id="menu-overlay">
+  <div class="ov-title">⚡ Circuit Spark</div>
+  <div class="ov-sub">Wire up logic gates to light the bulb.<br>Each level teaches a new concept.</div>
+  <button class="ov-btn" onclick="startGame()">▶ START GAME</button>
+</div>
+
+<div class="overlay hidden" id="win-overlay">
+  <div class="ov-title" id="win-title">💡 SOLVED!</div>
+  <div class="ov-sub" id="win-msg">Circuit complete!</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+    <button class="ov-btn" id="next-btn" onclick="nextLevel()">NEXT LEVEL →</button>
+    <button class="ov-btn sec" onclick="resetLevel()">TRY AGAIN</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="complete-overlay">
+  <div class="ov-title">🏆 ALL CIRCUITS SOLVED!</div>
+  <div class="ov-sub" id="complete-msg">You mastered AND, OR, and XOR gates!</div>
+  <button class="ov-btn" onclick="startGame()">▶ PLAY AGAIN</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CIRCUIT SPARK — Logic Gate Puzzle Game (Fixed)
+// ═══════════════════════════════════════════════════════
+
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+const ghostCanvas = document.getElementById('gate-ghost');
+const ghostCtx = ghostCanvas.getContext('2d');
+
+const C = {
+  bg: '#111218', surface: '#181a24', panel: '#1e2130', border: '#2a2f45',
+  wireIdle: '#2a3050', wireHot: '#f5c842', wireHot2: '#ff8c42',
+  and: '#4af0c8', or: '#ff6b9d', xor: '#7eb8ff',
+  text: '#c8cfe8', textDim: '#505878',
+  yellow: '#f5c842', red: '#ff4a6b', green: '#4af0c8',
+};
+
+function gateColor(type) {
+  return type === 'AND' ? C.and : type === 'OR' ? C.or : C.xor;
+}
+
+const GW = 82, GH = 54;
+const PORT_R = 7;
+
+let W, H;
+let nodes = [];
+let wires = [];
+let dragging = null;     // { node, offX, offY }
+let wiring = null;       // { fromId, fromPort, x, y }
+let paletteGhost = null; // { type, clientX, clientY } — global drag from palette
+let score = 0;
+let currentLevel = 0;
+let winTriggered = false;
+
+const LEVELS = [
+  {
+    name: "First Spark",
+    goal: "Connect both inputs through an AND gate to light the bulb. Both must be ON.",
+    hint: "AND = both must be 1. Drag an AND gate, wire the two inputs to it, then wire it to the bulb.",
+    hintTitle: "⚡ AND Gate",
+    inputs: [1, 1],
+    allowedGates: ['AND'],
+    expectedOutput: 1,
+    concept: "AND gate: Output is 1 only when A=1 AND B=1. Like a door that needs TWO keys.",
+  },
+  {
+    name: "Dead Wire",
+    goal: "One input is OFF (0). Use an AND gate — will it still light up?",
+    hint: "AND needs BOTH inputs to be 1. With one input = 0, the output will be 0. That's the lesson!",
+    hintTitle: "🔍 AND vs 0",
+    inputs: [1, 0],
+    allowedGates: ['AND'],
+    expectedOutput: 0,
+    concept: "If either input is 0, AND outputs 0. It's the strictest gate.",
+    isDemo: true,
+  },
+  {
+    name: "At Least One",
+    goal: "One input is OFF. Use an OR gate to light the bulb — only ONE needs to be ON.",
+    hint: "OR = at least one must be 1. Wire A=1 and B=0 through OR → output should be 1.",
+    hintTitle: "✨ OR Gate",
+    inputs: [1, 0],
+    allowedGates: ['OR'],
+    expectedOutput: 1,
+    concept: "OR gate: Output is 1 if A=1 OR B=1 (or both). Like a door that needs just ONE key.",
+  },
+  {
+    name: "Both ON",
+    goal: "Both inputs are ON. Route them through an OR gate. What happens?",
+    hint: "OR outputs 1 if EITHER input is 1. With both = 1, output is still 1.",
+    hintTitle: "OR with 1,1",
+    inputs: [1, 1],
+    allowedGates: ['OR'],
+    expectedOutput: 1,
+    concept: "OR with both inputs = 1 still gives 1. OR is generous — it fires whenever it can.",
+  },
+  {
+    name: "The Odd One",
+    goal: "Inputs are different (1,0). Use XOR — it only fires when inputs DIFFER.",
+    hint: "XOR = eXclusive OR. It outputs 1 only when exactly ONE input is 1.",
+    hintTitle: "🔀 XOR Gate",
+    inputs: [1, 0],
+    allowedGates: ['XOR'],
+    expectedOutput: 1,
+    concept: "XOR: Output is 1 when A ≠ B. Same inputs = 0, Different inputs = 1.",
+  },
+  {
+    name: "Twins Cancel",
+    goal: "Both inputs are the same (1,1). Connect them through XOR — what happens?",
+    hint: "XOR cancels out when both inputs match! 1 XOR 1 = 0. The bulb won't light — that's the lesson!",
+    hintTitle: "🔀 XOR 1,1 = 0",
+    inputs: [1, 1],
+    allowedGates: ['XOR'],
+    expectedOutput: 0,
+    concept: "XOR with same inputs = 0. This 'cancelling' property makes XOR essential in encryption & checksums!",
+    isDemo: true,
+  },
+  {
+    name: "Choose Wisely",
+    goal: "Inputs are 0 and 1. Pick the right gate to light the bulb — AND won't work here!",
+    hint: "AND(0,1)=0, OR(0,1)=1, XOR(0,1)=1. You need a gate that outputs 1.",
+    hintTitle: "🧠 Gate Choice",
+    inputs: [0, 1],
+    allowedGates: ['AND','OR','XOR'],
+    expectedOutput: 1,
+    concept: "AND is strict (needs both). OR and XOR both work here. Pick the right tool for the job!",
+  },
+  {
+    name: "Zero Game",
+    goal: "Both inputs are 0. Can you light the bulb? (Hint: you can't — but WHY?)",
+    hint: "AND(0,0)=0, OR(0,0)=0, XOR(0,0)=0. No gate can conjure 1 from two 0s. That's digital logic!",
+    hintTitle: "🚫 All gates = 0",
+    inputs: [0, 0],
+    allowedGates: ['AND','OR','XOR'],
+    expectedOutput: 0,
+    concept: "With A=0 and B=0, every basic gate outputs 0. Logic can't create signal from nothing!",
+    isDemo: true,
+  },
+];
+
+// ── RESIZE ─────────────────────────────────────────────
+function resize() {
+  const wrap = document.getElementById('canvas-wrap');
+  W = wrap.clientWidth;
+  H = wrap.clientHeight;
+  canvas.width = W;
+  canvas.height = H;
+  draw();
+}
+
+// ── LEVEL SETUP ────────────────────────────────────────
+function setupLevel(idx) {
+  const lv = LEVELS[idx];
+  nodes = [];
+  wires = [];
+  dragging = null;
+  wiring = null;
+  paletteGhost = null;
+  winTriggered = false;
+  ghostCanvas.style.display = 'none';
+  document.getElementById('canvas-wrap').classList.remove('wiring-mode');
+
+  const cx = W / 2, cy = H / 2;
+
+  nodes.push({ id: 'inA', type: 'INPUT', label: 'A', x: cx * 0.28, y: cy - 55, value: lv.inputs[0] });
+  nodes.push({ id: 'inB', type: 'INPUT', label: 'B', x: cx * 0.28, y: cy + 55, value: lv.inputs[1] });
+  nodes.push({ id: 'bulb', type: 'BULB', x: cx * 1.65, y: cy, value: 0 });
+
+  // Update palette gate availability
+  ['AND','OR','XOR'].forEach(t => {
+    const el = document.getElementById('pg-' + t);
+    if (lv.allowedGates.includes(t)) {
+      el.classList.remove('disabled');
+    } else {
+      el.classList.add('disabled');
+    }
+  });
+
+  updateLevelCard(idx);
+  updateHint(lv);
+  evaluateAll();
+  draw();
+  hideOverlay('win-overlay');
+  hideOverlay('complete-overlay');
+}
+
+function updateLevelCard(idx) {
+  const lv = LEVELS[idx];
+  document.getElementById('lc-num').textContent = `LEVEL ${idx+1}`;
+  document.getElementById('lc-name').textContent = lv.name;
+  document.getElementById('lc-goal').textContent = lv.goal;
+  document.getElementById('top-level').textContent = `${idx+1}/${LEVELS.length}`;
+
+  const inp = document.getElementById('lc-inputs');
+  inp.innerHTML = '';
+  lv.inputs.forEach((v, i) => {
+    const d = document.createElement('div');
+    d.className = `input-pill ${v ? 'hot' : 'cold'}`;
+    d.innerHTML = `<div class="input-pill-label">${i===0?'A':'B'}</div><div>${v}</div>`;
+    inp.appendChild(d);
+  });
+}
+
+function updateHint(lv) {
+  document.getElementById('hint-title').textContent = lv.hintTitle || '💡 Hint';
+  document.getElementById('hint-text').textContent = lv.hint;
+}
+
+// ── EVALUATE LOGIC ─────────────────────────────────────
+function getNodeOutput(id) {
+  const n = nodes.find(x => x.id === id);
+  if (!n) return 0;
+  if (n.type === 'INPUT') return n.value;
+  if (n.type === 'BULB') return n.value;
+  return (n.output !== undefined) ? n.output : 0;
+}
+
+function evaluateAll() {
+  // Sort: INPUT first, then gates, then BULB
+  const order = ['INPUT','AND','OR','XOR','BULB'];
+  const sorted = [...nodes].sort((a,b) => order.indexOf(a.type) - order.indexOf(b.type));
+
+  sorted.forEach(node => {
+    if (node.type === 'AND' || node.type === 'OR' || node.type === 'XOR') {
+      const inWires = wires.filter(w => w.toId === node.id);
+      const vals = [0, 0];
+      inWires.forEach(w => {
+        const portIdx = w.toPort === 'in0' ? 0 : 1;
+        vals[portIdx] = getNodeOutput(w.fromId);
+      });
+      const a = vals[0], b = vals[1];
+      if (node.type === 'AND') node.output = a & b;
+      else if (node.type === 'OR')  node.output = a | b;
+      else                           node.output = a ^ b;
+    }
+
+    if (node.type === 'BULB') {
+      const inW = wires.find(w => w.toId === 'bulb');
+      node.value = inW ? getNodeOutput(inW.fromId) : 0;
+    }
+  });
+
+  wires.forEach(w => { w.hot = getNodeOutput(w.fromId) === 1; });
+  checkWin();
+}
+
+function checkWin() {
+  if (winTriggered) return;
+  const lv = LEVELS[currentLevel];
+  const bulb = nodes.find(n => n.type === 'BULB');
+  if (!bulb) return;
+
+  // Need at least one gate placed
+  const gateNodes = nodes.filter(n => n.type !== 'INPUT' && n.type !== 'BULB');
+  if (gateNodes.length === 0) return;
+
+  // Bulb must be wired
+  const bulbWired = wires.some(w => w.toId === 'bulb');
+  if (!bulbWired) return;
+
+  // Every placed gate must have BOTH inputs wired
+  for (const g of gateNodes) {
+    const in0 = wires.some(w => w.toId === g.id && w.toPort === 'in0');
+    const in1 = wires.some(w => w.toId === g.id && w.toPort === 'in1');
+    if (!in0 || !in1) return;
+  }
+
+  // Check output matches expected
+  const expected = lv.expectedOutput;
+  if (bulb.value === expected) {
+    winTriggered = true;
+    setTimeout(triggerWin, 300);
+  }
+}
+
+function triggerWin() {
+  const lv = LEVELS[currentLevel];
+  score += 100;
+  document.getElementById('top-score').textContent = score;
+  spawnSparks();
+
+  const isLast = currentLevel >= LEVELS.length - 1;
+  if (isLast) {
+    document.getElementById('complete-msg').textContent =
+      `Final score: ${score} pts. You've mastered AND, OR, and XOR!`;
+    showOverlay('complete-overlay');
+    return;
+  }
+
+  document.getElementById('win-title').textContent =
+    lv.isDemo ? "💡 Lesson Learned!" : "💡 CIRCUIT SOLVED!";
+  document.getElementById('win-msg').textContent = lv.concept;
+  document.getElementById('next-btn').textContent = `NEXT LEVEL →`;
+  showOverlay('win-overlay');
+}
+
+// ── DRAW ───────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  drawWires();
+  nodes.forEach(n => {
+    if (n.type === 'INPUT') drawInput(n);
+    else if (n.type === 'BULB') drawBulb(n);
+    else drawGate(ctx, n, false);
+  });
+
+  if (wiring) {
+    ctx.save();
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = C.yellow;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.7;
+    const from = getPortPos(wiring.fromId, wiring.fromPort);
+    if (from) {
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(wiring.x, wiring.y);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+}
+
+function drawWires() {
+  wires.forEach(w => {
+    const from = getPortPos(w.fromId, w.fromPort);
+    const to   = getPortPos(w.toId,   w.toPort);
+    if (!from || !to) return;
+
+    const hot = w.hot;
+    const col = hot ? C.wireHot : C.wireIdle;
+    const cpX = from.x + (to.x - from.x) * 0.5;
+
+    ctx.save();
+    if (hot) { ctx.shadowColor = C.wireHot; ctx.shadowBlur = 8; }
+    ctx.strokeStyle = col;
+    ctx.lineWidth = hot ? 3 : 2;
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
+    ctx.bezierCurveTo(cpX, from.y, cpX, to.y, to.x, to.y);
+    ctx.stroke();
+    ctx.restore();
+
+    [from, to].forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+      ctx.fillStyle = hot ? C.wireHot : C.border;
+      ctx.fill();
+    });
+  });
+}
+
+// Unified gate drawing — works on any ctx (main canvas or ghost canvas)
+function drawGate(c, n, isGhost) {
+  const col = gateColor(n.type);
+  const x = n.x, y = n.y;
+  const w = GW, h = GH;
+
+  c.save();
+  c.fillStyle = '#1a1e2e';
+  c.strokeStyle = col;
+  c.lineWidth = 2;
+  if (!isGhost) { c.shadowColor = col; c.shadowBlur = n.output ? 14 : 4; }
+
+  if (n.type === 'AND') {
+    c.beginPath();
+    c.moveTo(x, y - h/2);
+    c.lineTo(x + w*0.45, y - h/2);
+    c.arc(x + w*0.45, y, h/2, -Math.PI/2, Math.PI/2);
+    c.lineTo(x, y + h/2);
+    c.closePath();
+  } else if (n.type === 'OR') {
+    c.beginPath();
+    c.moveTo(x, y - h/2);
+    c.quadraticCurveTo(x + w*0.3, y - h/2, x + w, y);
+    c.quadraticCurveTo(x + w*0.3, y + h/2, x, y + h/2);
+    c.quadraticCurveTo(x + w*0.2, y, x, y - h/2);
+    c.closePath();
+  } else {
+    c.beginPath();
+    c.moveTo(x + 10, y - h/2);
+    c.quadraticCurveTo(x + w*0.35, y - h/2, x + w, y);
+    c.quadraticCurveTo(x + w*0.35, y + h/2, x + 10, y + h/2);
+    c.quadraticCurveTo(x + w*0.25, y, x + 10, y - h/2);
+    c.closePath();
+  }
+  c.fill();
+  c.stroke();
+
+  if (n.type === 'XOR') {
+    c.beginPath();
+    c.moveTo(x, y - h/2);
+    c.quadraticCurveTo(x + 14, y, x, y + h/2);
+    c.strokeStyle = col;
+    c.lineWidth = 2;
+    c.stroke();
+  }
+
+  c.shadowBlur = 0;
+  c.fillStyle = col;
+  c.font = `bold 12px 'Syne Mono', monospace`;
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText(n.type, x + w * 0.42, y);
+
+  if (!isGhost && n.output !== undefined) {
+    const outVal = n.output;
+    c.beginPath();
+    c.arc(x + w + PORT_R + 1, y, PORT_R + 2, 0, Math.PI*2);
+    c.fillStyle = outVal ? C.wireHot : '#1a1e2e';
+    c.strokeStyle = outVal ? C.wireHot : C.border;
+    c.lineWidth = 1.5;
+    c.fill(); c.stroke();
+    c.fillStyle = outVal ? '#111' : C.textDim;
+    c.font = `bold 9px monospace`;
+    c.fillText(outVal, x + w + PORT_R + 1, y);
+  }
+
+  if (!isGhost) drawPorts(c, n);
+  c.restore();
+}
+
+function drawInput(n) {
+  const v = n.value;
+  const r = 22;
+  ctx.save();
+  ctx.shadowColor = v ? C.yellow : C.border;
+  ctx.shadowBlur = v ? 16 : 4;
+
+  ctx.beginPath();
+  ctx.arc(n.x, n.y, r, 0, Math.PI*2);
+  ctx.fillStyle = v ? 'rgba(245,200,66,0.15)' : '#1a1e2e';
+  ctx.strokeStyle = v ? C.yellow : C.border;
+  ctx.lineWidth = 2;
+  ctx.fill(); ctx.stroke();
+
+  ctx.fillStyle = v ? C.yellow : C.textDim;
+  ctx.font = `bold 16px 'Syne Mono', monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(v, n.x, n.y);
+
+  ctx.shadowBlur = 0;
+  ctx.font = `10px 'Syne Mono', monospace`;
+  ctx.fillStyle = C.textDim;
+  ctx.fillText(n.label, n.x, n.y - r - 8);
+  ctx.restore();
+
+  const p = getPortPos(n.id, 'out');
+  drawPort(ctx, p.x, p.y, v ? C.yellow : C.border, v);
+}
+
+function drawBulb(n) {
+  const v = n.value;
+  const bx = n.x, by = n.y;
+  ctx.save();
+  if (v) { ctx.shadowColor = C.yellow; ctx.shadowBlur = 30; }
+
+  ctx.beginPath();
+  ctx.arc(bx, by - 8, 22, 0, Math.PI*2);
+  ctx.fillStyle = v ? 'rgba(245,200,66,0.2)' : '#1a1e2e';
+  ctx.strokeStyle = v ? C.yellow : C.border;
+  ctx.lineWidth = 2.5;
+  ctx.fill(); ctx.stroke();
+
+  ctx.fillStyle = v ? 'rgba(245,200,66,0.3)' : C.border;
+  ctx.strokeStyle = v ? C.yellow : C.border;
+  ctx.fillRect(bx - 10, by + 14, 20, 8);
+  ctx.strokeRect(bx - 10, by + 14, 20, 8);
+
+  ctx.font = `22px serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(v ? '💡' : '🔲', bx, by - 6);
+
+  ctx.font = `bold 10px 'Syne Mono', monospace`;
+  ctx.fillStyle = v ? C.yellow : C.textDim;
+  ctx.fillText('OUTPUT', bx, by + 36);
+
+  ctx.shadowBlur = 0;
+  ctx.restore();
+
+  const p = getPortPos('bulb', 'in0');
+  drawPort(ctx, p.x, p.y, v ? C.yellow : C.border, v);
+}
+
+function drawPorts(c, n) {
+  const p0 = getPortPos(n.id, 'in0');
+  const p1 = getPortPos(n.id, 'in1');
+  const po = getPortPos(n.id, 'out');
+
+  const w0 = wires.find(w => w.toId === n.id && w.toPort === 'in0');
+  const w1 = wires.find(w => w.toId === n.id && w.toPort === 'in1');
+
+  drawPort(c, p0.x, p0.y, w0 ? (w0.hot ? C.wireHot : C.border) : C.border, w0?.hot);
+  drawPort(c, p1.x, p1.y, w1 ? (w1.hot ? C.wireHot : C.border) : C.border, w1?.hot);
+  drawPort(c, po.x, po.y, n.output ? C.wireHot : C.border, n.output);
+
+  c.font = `8px 'Syne Mono', monospace`;
+  c.fillStyle = C.textDim;
+  c.textAlign = 'right'; c.textBaseline = 'middle';
+  c.fillText('A', p0.x - PORT_R - 3, p0.y);
+  c.fillText('B', p1.x - PORT_R - 3, p1.y);
+}
+
+function drawPort(c, x, y, col, hot) {
+  c.save();
+  if (hot) { c.shadowColor = col; c.shadowBlur = 8; }
+  c.beginPath();
+  c.arc(x, y, PORT_R, 0, Math.PI*2);
+  c.fillStyle = hot ? col + '33' : '#1a1e2e';
+  c.strokeStyle = col;
+  c.lineWidth = 2;
+  c.fill(); c.stroke();
+  c.restore();
+}
+
+// ── PORT POSITIONS ──────────────────────────────────────
+function getPortPos(id, port) {
+  const n = nodes.find(x => x.id === id);
+  if (!n) return null;
+  if (n.type === 'INPUT') return port === 'out' ? { x: n.x + 22, y: n.y } : { x: n.x, y: n.y };
+  if (n.type === 'BULB')  return { x: n.x - 30, y: n.y - 8 };
+  if (port === 'in0') return { x: n.x, y: n.y - 14 };
+  if (port === 'in1') return { x: n.x, y: n.y + 14 };
+  if (port === 'out')  return { x: n.x + GW, y: n.y };
+  return null;
+}
+
+// ── HIT TESTING ────────────────────────────────────────
+function portHit(x, y, id, port) {
+  const p = getPortPos(id, port);
+  if (!p) return false;
+  const dx = x - p.x, dy = y - p.y;
+  return Math.sqrt(dx*dx + dy*dy) <= PORT_R + 6;
+}
+
+function gateHit(x, y, n) {
+  if (n.type === 'INPUT') {
+    const dx = x - n.x, dy = y - n.y;
+    return Math.sqrt(dx*dx + dy*dy) <= 22;
+  }
+  if (n.type === 'BULB') {
+    const dx = x - n.x, dy = y - (n.y - 8);
+    return Math.sqrt(dx*dx + dy*dy) <= 26;
+  }
+  return x >= n.x - 5 && x <= n.x + GW + 15 && y >= n.y - GH/2 - 5 && y <= n.y + GH/2 + 5;
+}
+
+// ── MOUSE EVENTS ON CANVAS ─────────────────────────────
+canvas.addEventListener('mousedown', onCanvasMouseDown);
+canvas.addEventListener('mousemove', onCanvasMouseMove);
+canvas.addEventListener('mouseup', onCanvasMouseUp);
+canvas.addEventListener('dblclick', onDblClick);
+canvas.addEventListener('contextmenu', e => { e.preventDefault(); cancelWiring(); });
+
+function canvasXY(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+function onCanvasMouseDown(e) {
+  const {x, y} = canvasXY(e);
+
+  // FIX: Check port hits for ALL nodes with proper port lists
+  for (const n of nodes) {
+    let ports;
+    if (n.type === 'INPUT')     ports = ['out'];
+    else if (n.type === 'BULB') ports = ['in0'];
+    else                         ports = ['in0', 'in1', 'out'];
+
+    for (const port of ports) {
+      if (portHit(x, y, n.id, port)) {
+        if (wiring) {
+          // FIX: Finish wiring — accept clicks on input ports to complete connection
+          if (port !== 'out' && wiring.fromId !== n.id) {
+            tryConnect(wiring.fromId, wiring.fromPort, n.id, port);
+          }
+          wiring = null;
+          document.getElementById('canvas-wrap').classList.remove('wiring-mode');
+          draw();
+        } else {
+          // Start wiring only from output ports
+          if (port === 'out') {
+            wiring = { fromId: n.id, fromPort: port, x, y };
+            document.getElementById('canvas-wrap').classList.add('wiring-mode');
+          }
+        }
+        return;
+      }
+    }
+  }
+
+  // Clicked empty space — cancel wiring
+  if (wiring) {
+    wiring = null;
+    document.getElementById('canvas-wrap').classList.remove('wiring-mode');
+    draw();
+    return;
+  }
+
+  // Start dragging a placed gate
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    if (n.type === 'INPUT' || n.type === 'BULB') continue;
+    if (gateHit(x, y, n)) {
+      dragging = { node: n, offX: x - n.x, offY: y - n.y };
+      return;
+    }
+  }
+}
+
+function onCanvasMouseMove(e) {
+  const {x, y} = canvasXY(e);
+
+  if (dragging) {
+    dragging.node.x = x - dragging.offX;
+    dragging.node.y = y - dragging.offY;
+    evaluateAll();
+    draw();
+    return;
+  }
+
+  if (wiring) {
+    wiring.x = x; wiring.y = y;
+    draw();
+    return;
+  }
+
+  // Tooltip
+  let hovered = null;
+  for (const n of nodes) {
+    if (gateHit(x, y, n)) { hovered = n; break; }
+  }
+  const tt = document.getElementById('tooltip');
+  if (hovered && ['AND','OR','XOR'].includes(hovered.type)) {
+    const rules = { AND: 'A AND B → 1 only if both = 1', OR: 'A OR B → 1 if either = 1', XOR: 'A XOR B → 1 if A ≠ B' };
+    tt.textContent = rules[hovered.type];
+    tt.style.display = 'block';
+    tt.style.left = (x + 14) + 'px';
+    tt.style.top  = (y - 10) + 'px';
+  } else {
+    tt.style.display = 'none';
+  }
+}
+
+function onCanvasMouseUp(e) {
+  if (dragging) {
+    dragging = null;
+    evaluateAll();
+    draw();
+  }
+}
+
+function onDblClick(e) {
+  const {x, y} = canvasXY(e);
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    if (n.type === 'INPUT' || n.type === 'BULB') continue;
+    if (gateHit(x, y, n)) {
+      wires = wires.filter(w => w.fromId !== n.id && w.toId !== n.id);
+      nodes.splice(i, 1);
+      winTriggered = false; // allow re-triggering after delete
+      evaluateAll();
+      draw();
+      return;
+    }
+  }
+}
+
+function tryConnect(fromId, fromPort, toId, toPort) {
+  const fromNode = nodes.find(n => n.id === fromId);
+  const toNode   = nodes.find(n => n.id === toId);
+  if (!fromNode || !toNode) return;
+  if (fromId === toId) return;
+  if (fromPort !== 'out') return;
+  // Accept in0 for bulb, in0/in1 for gates
+  const validToPort = (toNode.type === 'BULB' && toPort === 'in0') ||
+                      (['AND','OR','XOR'].includes(toNode.type) && (toPort === 'in0' || toPort === 'in1'));
+  if (!validToPort) return;
+  if (fromNode.type === 'BULB') return;
+  if (toNode.type === 'INPUT') return;
+
+  // Remove any existing wire to the same input port (one-input-per-port rule)
+  wires = wires.filter(w => !(w.toId === toId && w.toPort === toPort));
+  wires.push({ fromId, fromPort, toId, toPort, hot: false });
+  winTriggered = false;
+  evaluateAll();
+}
+
+function cancelWiring() {
+  wiring = null;
+  document.getElementById('canvas-wrap').classList.remove('wiring-mode');
+  draw();
+}
+
+// ── PALETTE DRAG (global mousemove/mouseup on document) ─
+// FIX: Palette drag now works across the entire page, not just the canvas.
+
+['AND','OR','XOR'].forEach(type => {
+  const el = document.getElementById('pg-' + type);
+
+  el.addEventListener('mousedown', e => {
+    const lv = LEVELS[currentLevel];
+    if (!lv.allowedGates.includes(type)) return;
+    e.preventDefault();
+
+    // Prepare ghost canvas
+    ghostCanvas.width = GW + 30;
+    ghostCanvas.height = GH + 20;
+    ghostCtx.clearRect(0, 0, ghostCanvas.width, ghostCanvas.height);
+    ghostCtx.globalAlpha = 0.75;
+    drawGate(ghostCtx, { type, x: 5, y: GH/2 + 10, output: 0 }, true);
+    ghostCtx.globalAlpha = 1;
+
+    ghostCanvas.style.display = 'block';
+    ghostCanvas.style.left = (e.clientX - ghostCanvas.width/2) + 'px';
+    ghostCanvas.style.top  = (e.clientY - ghostCanvas.height/2) + 'px';
+
+    paletteGhost = { type };
+  });
+});
+
+document.addEventListener('mousemove', e => {
+  if (!paletteGhost) return;
+  ghostCanvas.style.left = (e.clientX - ghostCanvas.width/2) + 'px';
+  ghostCanvas.style.top  = (e.clientY - ghostCanvas.height/2) + 'px';
+});
+
+document.addEventListener('mouseup', e => {
+  if (!paletteGhost) return;
+
+  const type = paletteGhost.type;
+  paletteGhost = null;
+  ghostCanvas.style.display = 'none';
+
+  // Check if dropped over the canvas
+  const canvasRect = canvas.getBoundingClientRect();
+  const cx = e.clientX, cy = e.clientY;
+  if (cx >= canvasRect.left && cx <= canvasRect.right &&
+      cy >= canvasRect.top  && cy <= canvasRect.bottom) {
+    const x = cx - canvasRect.left;
+    const y = cy - canvasRect.top;
+    const id = type + '_' + Date.now();
+    nodes.push({ id, type, x: x - GW/2, y, output: 0 });
+    winTriggered = false;
+    evaluateAll();
+    draw();
+  }
+});
+
+// ── TOUCH SUPPORT ──────────────────────────────────────
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  onCanvasMouseDown({ clientX: t.clientX, clientY: t.clientY });
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  onCanvasMouseMove({ clientX: t.clientX, clientY: t.clientY });
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  onCanvasMouseUp({ clientX: t.clientX, clientY: t.clientY });
+}, { passive: false });
+
+// ── SPARKS ─────────────────────────────────────────────
+function spawnSparks() {
+  const wrap = document.getElementById('canvas-wrap');
+  const bulb = nodes.find(n => n.type === 'BULB');
+  if (!bulb) return;
+  const cr = canvas.getBoundingClientRect();
+  const wr = wrap.getBoundingClientRect();
+  for (let i = 0; i < 14; i++) {
+    const s = document.createElement('div');
+    s.className = 'spark';
+    s.style.left = (bulb.x + (cr.left - wr.left) + (Math.random()-0.5)*40) + 'px';
+    s.style.top  = ((bulb.y - 8) + (cr.top - wr.top) + (Math.random()-0.5)*30) + 'px';
+    s.style.background = Math.random() > 0.5 ? C.yellow : C.wireHot2;
+    s.style.animationDelay = (Math.random() * 0.4) + 's';
+    wrap.appendChild(s);
+    setTimeout(() => s.remove(), 1200);
+  }
+}
+
+// ── NAVIGATION ─────────────────────────────────────────
+function startGame() {
+  currentLevel = 0;
+  score = 0;
+  document.getElementById('top-score').textContent = 0;
+  hideOverlay('menu-overlay');
+  hideOverlay('complete-overlay');
+  hideOverlay('win-overlay');
+  setupLevel(currentLevel);
+}
+
+function nextLevel() {
+  currentLevel++;
+  if (currentLevel >= LEVELS.length) {
+    showOverlay('complete-overlay');
+    return;
+  }
+  hideOverlay('win-overlay');
+  setupLevel(currentLevel);
+}
+
+function resetLevel() {
+  hideOverlay('win-overlay');
+  setupLevel(currentLevel);
+}
+
+function showMenu() { showOverlay('menu-overlay'); }
+function showOverlay(id) { document.getElementById(id).classList.remove('hidden'); }
+function hideOverlay(id) { document.getElementById(id).classList.add('hidden'); }
+
+// ── INIT ───────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  resize();
+  if (nodes.length > 0) setupLevel(currentLevel);
+});
+
+resize();
+requestAnimationFrame(function loop() {
+  draw();
+  requestAnimationFrame(loop);
+});
+</script>
+</body>
+</html>
